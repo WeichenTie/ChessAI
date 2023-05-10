@@ -1,4 +1,18 @@
 <script lang="ts">
+  import bBishop from './assets/b_bishop.svg';
+  import bKing from './assets/b_king.svg';
+  import bKnight from './assets/b_knight.svg';
+  import bPawn from './assets/b_pawn.svg';
+  import bQueen from './assets/b_queen.svg';
+  import bRook from './assets/b_rook.svg';
+  
+  import wBishop from './assets/w_bishop.svg';
+  import wKing from './assets/w_king.svg';
+  import wKnight from './assets/w_knight.svg';
+  import wPawn from './assets/w_pawn.svg';
+  import wQueen from './assets/w_queen.svg';
+  import wRook from './assets/w_rook.svg';
+  import { fade } from 'svelte/transition';
   import './app.css';
   const board = [
     [0, 0, 0, 0, 0, 0, 0, 0],
@@ -12,18 +26,18 @@
   ];
   
   const pieces = {
-    1 : {title: "white pawn", image: "/w_pawn.svg"},
-    2 : {title: "white knight", image: "/w_knight.svg"},
-    3 : {title: "white bishop", image: "/w_bishop.svg"},
-    4 : {title: "white rook", image: "/w_rook.svg"},
-    5 : {title: "white queen", image: "/w_queen.svg"},
-    6 : {title: "white king", image: "/w_king.svg"},
-    7 : {title: "black pawn", image: "/b_pawn.svg" },
-    8 : {title: "black knight", image: "/b_knight.svg"},
-    9 : {title: "black bishop", image: "/b_bishop.svg"},
-    10 : {title: "black rook", image: "/b_rook.svg" },
-    11 : {title: "black queen", image: "/b_queen.svg"},
-    12 : {title: "black king", image: "/b_king.svg"},
+    1 : {title: "white pawn", image:bPawn },
+    2 : {title: "white knight", image:bKnight },
+    3 : {title: "white bishop", image:bBishop },
+    4 : {title: "white rook", image:bRook },
+    5 : {title: "white queen", image:bQueen },
+    6 : {title: "white king", image:bKing },
+    7 : {title: "black pawn", image:wPawn },
+    8 : {title: "black knight", image:wKnight },
+    9 : {title: "black bishop", image:wBishop },
+    10 : {title: "black rook", image:wRook },
+    11 : {title: "black queen", image:wQueen },
+    12 : {title: "black king", image:wKing },
   }
   
   function initFromFenString(fen: string) {
@@ -81,27 +95,41 @@
     }
   }
   
-  
+  const mouseCoords = { x: 0, y: 0 };
   let selected = null;
   function onMouseDown(e) {
     e.preventDefault();
-    // console.log(e.target);
+    const piece = e.target.children[0];
+    if (!piece) return;
+    selected = {row: Number.parseInt(piece.dataset.row), col: Number.parseInt(piece.dataset.col)};
+  }
+  
+  function onMouseMove(e) {
+    mouseCoords.x = Number.parseInt(event.x);
+    mouseCoords.y = Number.parseInt(event.y);
   }
   
   function onMouseUp(e) {
     e.preventDefault();
+    if (!selected) return;
+    const target = {row: e.target.dataset.row, col: e.target.dataset.col}
+    board[target.row][target.col] = board[selected.row][selected.col]
+    board[selected.row][selected.col] = 0;
+    selected = null
   }
   
   initFromFenString('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
 </script>
 
+<svelte:window on:mouseup={()=>selected = null} />
+
 <main>
-  <div class="chess-board">
+  <div id="chess-board" on:mousemove={onMouseMove}  style:--mouse-x={`${mouseCoords.x}px`} style:--mouse-y={`${mouseCoords.y}px`}>
     {#each board as row, ri}
       {#each row as cell, ci}
-        <div class="cell" data-row-even={!(ri % 2)} data-col-even={!!(ci % 2)} data-has-piece={cell !== 0} on:mousedown={onMouseDown} on:mouseup{onMouseUp}>
+        <div class="cell" on:mouseup={onMouseUp} style:--row={ri} style:--col={ci} data-row-even={!(ri % 2)} data-col-even={!!(ci % 2)} data-row={ri} data-col={ci} data-has-piece={cell !== 0} on:mousedown={onMouseDown} >
           {#if cell !== 0}
-            <object class={`piece cell-${ri}${ci}`} title={pieces[cell].title} data={pieces[cell].image} type="image/svg+xml" />
+            <object class={`piece cell-${ri}${ci}`} title={pieces[cell].title} data={pieces[cell].image} data-row={ri} data-col={ci} type="image/svg+xml" data-selected={ri === selected?.row && ci === selected?.col}/>
           {/if}
         </div>
       {/each}
@@ -112,7 +140,7 @@
 <style lang="postcss">
   @tailwind components;
   @layer components {
-    .chess-board {
+    #chess-board {
       @apply grid grid-cols-[repeat(8,1fr)] grid-rows-[repeat(8,1fr)] w-[512px] h-[512px];
     }
     .cell {
@@ -135,6 +163,9 @@
     }
     .cell[data-has-piece="true"] {
       @apply cursor-grab;
+    }
+    [data-selected="true"] {
+      transform: translate(-50%, -50%) translate(calc(var(--col) * -100% + var(--mouse-x, 0px)), calc(var(--row) * -100% + var(--mouse-y, 0px)));
     }
   }
 </style>
